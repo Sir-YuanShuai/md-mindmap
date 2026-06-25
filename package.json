@@ -27,7 +27,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yanys/md-mindmap"
+    "url": "https://github.com/Sir-YuanShuai/md-mindmap"
   },
   "engines": {
     "node": ">=16.0.0"
