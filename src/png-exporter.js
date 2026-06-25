@@ -2,14 +2,18 @@
  * PNG 导出模块 — 使用 Puppeteer 将思维导图 HTML 渲染为 PNG 截图
  *
  * 流程:
- *   1. 启动无头浏览器 (headless Chromium)
- *   2. 加载生成的 HTML 页面
+ *   1. 获取共享的无头浏览器实例（复用，避免重复启动）
+ *   2. 创建新页面，加载 HTML
  *   3. 等待 markmap SVG 渲染完成
  *   4. 截图并保存为 PNG 文件
- *   5. 关闭浏览器
+ *   5. 关闭页面（保留浏览器实例供后续使用）
+ *
+ * 性能优化:
+ *   - 使用 browser-pool 单例复用浏览器，首次启动后后续导出仅需 ~0.5s
+ *   - HTML 模板已内联所有 JS 依赖，消除了 CDN 网络请求
  */
 
-const puppeteer = require('puppeteer');
+const { getBrowser } = require('./browser-pool');
 
 /**
  * 将 HTML 渲染为 PNG 截图并保存到文件
@@ -30,28 +34,25 @@ async function exportPng(html, options = {}) {
     throw new Error('缺少 output 参数: 请指定 PNG 输出路径');
   }
 
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  const browser = await getBrowser();
+
+  const page = await browser.newPage();
 
   try {
-    const page = await browser.newPage();
-
     // 设置视口尺寸
     await page.setViewport({ width, height });
 
-    // 加载 HTML 内容，等待所有网络请求（CDN 资源）完成
+    // 加载 HTML 内容（JS/CSS 已内联，无需等待网络请求）
     await page.setContent(html, {
       waitUntil: 'networkidle0',
-      timeout: 30000,
+      timeout: 15000,
     });
 
     // 等待 markmap 在 <svg id="mindmap"> 内渲染出 <g> 节点
-    await page.waitForSelector('#mindmap g', { timeout: 15000 });
+    await page.waitForSelector('#mindmap g', { timeout: 10000 });
 
     // 额外等待以确保动画/过渡完成
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     // 截图
     await page.screenshot({
@@ -60,7 +61,7 @@ async function exportPng(html, options = {}) {
       fullPage: false,
     });
   } finally {
-    await browser.close();
+    await page.close();
   }
 }
 

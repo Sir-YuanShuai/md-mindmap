@@ -1,14 +1,11 @@
 /**
  * 将 markmap 的节点数据渲染为独立可用的 HTML 页面
+ *
+ * 所有 JS 依赖（d3、markmap-view）均从 node_modules 内联打包，
+ * 不依赖任何外部 CDN，离线环境也可正常渲染。
  */
 
-const fs = require('fs');
-const path = require('path');
-
-const MARKMAP_CDN_SCRIPTS = [
-  '<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>',
-  '<script src="https://cdn.jsdelivr.net/npm/markmap-view@0.18.12/dist/browser/index.js"></script>',
-];
+const { getInlineScripts } = require('./local-assets');
 
 /**
  * 导出工具栏 CSS 和 JS — HTML 内嵌 PNG / SVG 导出功能
@@ -170,7 +167,7 @@ function buildHtml(root, features, assets, options = {}) {
   const { styles, scripts } = assets || { styles: [], scripts: [] };
 
   const themeAttr = darkMode ? ' data-theme="dark"' : '';
-  const coreScripts = MARKMAP_CDN_SCRIPTS.join('\n');
+  const coreScripts = getInlineScripts();
 
   // 构建 markmap 配置
   const markmapOpts = {};

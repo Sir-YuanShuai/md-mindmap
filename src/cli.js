@@ -108,8 +108,13 @@ program
 
 /**
  * 使用 Puppeteer 渲染 HTML 并导出 PNG
+ *
+ * 使用 browser-pool 复用浏览器实例，避免每次重复启动 Chromium。
+ * HTML 中的 JS/CSS 已内联，无需等待 CDN 网络请求。
  */
 async function renderPng(markdown, options, fileName) {
+  const { getBrowser } = require('./browser-pool');
+
   let puppeteer;
   try {
     puppeteer = require('puppeteer');
@@ -137,21 +142,18 @@ async function renderPng(markdown, options, fileName) {
   const width = options.width || 1920;
   const height = options.height || 1080;
 
-  let browser;
+  let page;
   try {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-    const page = await browser.newPage();
+    const browser = await getBrowser();
+    page = await browser.newPage();
     await page.setViewport({ width, height });
-    await page.goto(`file://${tmpFile}`, { waitUntil: 'load', timeout: 30000 });
+    await page.goto(`file://${tmpFile}`, { waitUntil: 'load', timeout: 15000 });
 
     // 等待 markmap 初始化完成
     await page.waitForFunction(() => {
       const svg = document.getElementById('mindmap');
       return svg && svg.querySelector('g') && svg.getBoundingClientRect().width > 100;
-    }, { timeout: 20000 });
+    }, { timeout: 10000 });
 
     // 设置背景色 + 采集 foreignObject 尺寸 + 渲染 PNG
     const pngBase64 = await page.evaluate((dark) => {
@@ -224,10 +226,10 @@ async function renderPng(markdown, options, fileName) {
     console.log(`✅ PNG 已导出: ${outPath} (${width}x${height})`);
   } catch (err) {
     console.error(`错误: PNG 导出失败 — ${err.message}`);
-    console.error('提示: 请确保网络可访问 cdn.jsdelivr.net');
+    console.error('提示: 请确保已安装 puppeteer: npm install puppeteer');
     process.exit(1);
   } finally {
-    if (browser) await browser.close();
+    if (page) await page.close();
     try { fs.unlinkSync(tmpFile); } catch {}
   }
 }

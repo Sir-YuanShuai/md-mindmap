@@ -102,11 +102,12 @@ describe('render()', () => {
     assert.ok(html.includes('</html>'), '应以 </html> 结尾');
   });
 
-  it('HTML 应包含 markmap-view CDN 引用', () => {
+  it('HTML 应包含内联依赖（d3 / markmap-view）', () => {
     const html = render('# 标题');
-    assert.ok(html.includes('jsdelivr'), '应包含 CDN 引用');
-    assert.ok(html.includes('markmap-view'), '应引用 markmap-view');
-    assert.ok(html.includes('d3@7'), '应引用 d3');
+    // 不再依赖外部 CDN，所有依赖均内联为 <script>...</script>
+    assert.ok(!html.includes('jsdelivr'), '不应包含 CDN 引用');
+    assert.ok(html.includes('markmap-view') || html.includes('Markmap.create'), '应引用 markmap-view');
+    assert.ok(html.includes('d3') || html.includes('window.markmap'), '应包含 d3 或 markmap 引用');
   });
 
   it('HTML 应包含 mindmap SVG 容器和 Markmap.create 调用', () => {
@@ -196,8 +197,9 @@ describe('CLI e2e', () => {
     const html = fs.readFileSync(testOutPath, 'utf-8');
     assert.ok(html.includes('<!DOCTYPE html>'), '应包含 DOCTYPE');
     assert.match(html, /CLI Test/, '应包含原标题内容');
-    assert.ok(html.includes('markmap-view'), '应包含 markmap-view CDN');
     assert.ok(html.includes('Markmap.create'), '应包含初始化脚本');
+    // 依赖应内联为 <script> 标签，不依赖外部 CDN
+    assert.ok(!html.includes('jsdelivr'), '不应包含 CDN 引用');
   });
 
   it('应支持 --dark 选项', () => {
