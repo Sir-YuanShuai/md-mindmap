@@ -1,0 +1,41 @@
+{
+  "name": "md-mindmap",
+  "version": "1.0.0",
+  "description": "将 Markdown 渲染为交互式思维导图的 CLI 工具和库",
+  "main": "src/index.js",
+  "bin": {
+    "md-mindmap": "./src/cli.js"
+  },
+  "files": [
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node src/cli.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "markdown",
+    "mindmap",
+    "mind-map",
+    "markmap",
+    "思维导图",
+    "markdown-to-mindmap",
+    "cli"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yanys/md-mindmap"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "markmap-lib": "^0.18.11",
+    "markmap-view": "^0.18.11",
+    "open": "^10.1.0"
+  }
+}
