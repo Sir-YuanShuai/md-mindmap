@@ -28,6 +28,8 @@ function parse(markdown) {
  * @param {object} [options] - 可选配置
  * @param {string} [options.title] - 页面标题
  * @param {boolean} [options.darkMode] - 是否使用暗色主题
+ * @param {number} [options.depth] - 初始展开层级
+ * @param {boolean} [options.autoFit] - 是否自动缩放适配
  * @returns {string} 完整的 HTML 字符串
  */
 function render(markdown, options = {}) {

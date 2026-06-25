@@ -56,6 +56,8 @@ function getCoreScripts() {
  * @param {object} [options]
  * @param {string} [options.title='Mind Map'] - HTML 页面标题
  * @param {boolean} [options.darkMode=false] - 是否启用暗色主题
+ * @param {number} [options.depth] - 初始展开层级（undefined = 全部展开）
+ * @param {boolean} [options.autoFit=true] - 是否自动缩放适配
  * @returns {string} 完整 HTML 字符串
  */
 function buildHtml(root, features, assets, options = {}) {
@@ -66,6 +68,11 @@ function buildHtml(root, features, assets, options = {}) {
 
   const themeAttr = darkMode ? ' data-theme="dark"' : '';
   const coreScripts = getCoreScripts();
+
+  // 构建 markmap 配置
+  const markmapOpts = {};
+  if (options.depth != null) markmapOpts.initialExpandLevel = options.depth;
+  if (options.autoFit === false) markmapOpts.autoFit = false;
 
   return `<!DOCTYPE html>
 <html lang="zh-CN"${themeAttr}>
@@ -103,7 +110,7 @@ function buildHtml(root, features, assets, options = {}) {
     (() => {
       const { Markmap } = window.markmap;
       const svg = document.getElementById('mindmap');
-      Markmap.create(svg, null, ${JSON.stringify(root)});
+      Markmap.create(svg, ${JSON.stringify(markmapOpts)}, ${JSON.stringify(root)});
     })();
   </script>
 </body>

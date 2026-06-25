@@ -8,6 +8,9 @@
  *   md-mindmap <markdown-file> -o out.html    输出 HTML 到文件
  *   md-mindmap <markdown-file> --format png   输出 PNG 截图
  *   md-mindmap <markdown-file> -o m.png -f png --width 1920 --height 1080
+ *   md-mindmap <markdown-file> --format json    输出 JSON 节点树
+ *   md-mindmap <markdown-file> --depth 2        展开到第 2 层
+ *   md-mindmap <markdown-file> --no-fit         禁用自动缩放
  */
 
 const { Command } = require('commander');
@@ -25,16 +28,18 @@ program
   .option('-o, --output <file>', '输出文件路径')
   .option('-t, --title <title>', '自定义页面标题')
   .option('-d, --dark', '使用暗色主题')
-  .option('-f, --format <format>', '输出格式: html 或 png', 'html')
+  .option('-f, --format <format>', '输出格式: html、json 或 png', 'html')
   .option('--width <pixels>', 'PNG 宽度（像素）', '1280')
   .option('--height <pixels>', 'PNG 高度（像素）', '800')
+  .option('--depth <n>', '初始展开层级（默认全部展开）', parseInt)
+  .option('--no-fit', '禁用自动缩放适配')
   .action(async (filePath, options) => {
     try {
       const format = options.format.toLowerCase();
 
       // 验证格式
-      if (!['html', 'png'].includes(format)) {
-        console.error(`错误: 不支持的格式 "${options.format}"，仅支持 html 和 png`);
+      if (!['html', 'json', 'png'].includes(format)) {
+        console.error(`错误: 不支持的格式 "${options.format}"，仅支持 html、json 和 png`);
         process.exit(1);
       }
 
@@ -48,10 +53,28 @@ program
       const markdown = fs.readFileSync(absPath, 'utf-8');
       const fileName = path.basename(filePath, path.extname(filePath));
 
-      // 渲染 HTML
+      // 解析
+      const { root, features, frontmatter } = parse(markdown);
+
+      if (format === 'json') {
+        // JSON 输出
+        const json = JSON.stringify({ root, features, frontmatter }, null, 2);
+        if (options.output) {
+          const outPath = path.resolve(options.output);
+          fs.writeFileSync(outPath, json, 'utf-8');
+          console.log(`✅ JSON 已生成: ${outPath}`);
+        } else {
+          process.stdout.write(json);
+        }
+        return;
+      }
+
+      // HTML 渲染（默认及 PNG 模式）
       const html = render(markdown, {
         title: options.title || fileName,
         darkMode: options.dark,
+        depth: options.depth,
+        autoFit: options.fit,
       });
 
       if (format === 'png') {
