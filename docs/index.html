@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>md-mindmap — Markdown 思维导图在线编辑器</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-toolbar: #f8f9fa;
+      --bg-editor: #fafbfc;
+      --bg-preview: #ffffff;
+      --text: #1a1a2e;
+      --text-secondary: #6c757d;
+      --border: #dee2e6;
+      --border-editor: #e1e4e8;
+      --accent: #4c6ef5;
+      --accent-hover: #3b5bdb;
+      --accent-light: #e7f0ff;
+      --btn-bg: #f1f3f5;
+      --btn-hover: #e9ecef;
+      --btn-active: #dee2e6;
+      --resize-handle: #dee2e6;
+      --resize-handle-hover: #4c6ef5;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+      --shadow-lg: 0 4px 12px rgba(0,0,0,0.1);
+      --toast-bg: #1a1a2e;
+      --toast-text: #ffffff;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1e1e2e;
+      --bg-toolbar: #181825;
+      --bg-editor: #11111b;
+      --bg-preview: #1e1e2e;
+      --text: #cdd6f4;
+      --text-secondary: #a6adc8;
+      --border: #313244;
+      --border-editor: #313244;
+      --accent: #89b4fa;
+      --accent-hover: #74a8f7;
+      --accent-light: #1e2a3a;
+      --btn-bg: #313244;
+      --btn-hover: #45475a;
+      --btn-active: #585b70;
+      --resize-handle: #313244;
+      --resize-handle-hover: #89b4fa;
+      --shadow: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-lg: 0 4px 12px rgba(0,0,0,0.4);
+      --toast-bg: #cdd6f4;
+      --toast-text: #1e1e2e;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* ===== Toolbar ===== */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg-toolbar);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      transition: background 0.3s;
+      z-index: 10;
+    }
+
+    .toolbar__brand {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--text);
+      margin-right: 8px;
+      white-space: nowrap;
+    }
+
+    .toolbar__brand span {
+      color: var(--accent);
+    }
+
+    .toolbar__separator {
+      width: 1px;
+      height: 24px;
+      background: var(--border);
+      margin: 0 4px;
+    }
+
+    .toolbar__spacer { flex: 1; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--btn-bg);
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      text-decoration: none;
+    }
+
+    .btn:hover { background: var(--btn-hover); }
+    .btn:active { background: var(--btn-active); }
+
+    .btn--primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .btn--primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+    .btn--small {
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 4px;
+    }
+
+    .btn--icon {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      font-size: 16px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .btn--icon:hover {
+      background: var(--btn-hover);
+      color: var(--text);
+    }
+
+    .split-buttons {
+      display: inline-flex;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .split-buttons .btn {
+      border: none;
+      border-radius: 0;
+    }
+    .split-buttons .btn:not(:last-child) {
+      border-right: 1px solid var(--border);
+    }
+
+    /* ===== Dropdown ===== */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown__menu {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 100%;
+      margin-top: 4px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow-lg);
+      min-width: 180px;
+      z-index: 100;
+      overflow: hidden;
+    }
+    .dropdown__menu--open { display: block; }
+    .dropdown__item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 8px 14px;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.1s;
+    }
+    .dropdown__item:hover { background: var(--btn-hover); }
+    .dropdown__item svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* ===== Main Content ===== */
+    .main {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      position: relative;
+    }
+
+    .pane {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pane__header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: var(--bg-toolbar);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      transition: background 0.3s, border-color 0.3s;
+    }
+
+    .pane__header .indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .pane--editor { flex: 1; }
+    .pane--preview { flex: 1; }
+
+    /* Resize handle */
+    .resize-handle {
+      width: 4px;
+      cursor: col-resize;
+      background: var(--resize-handle);
+      flex-shrink: 0;
+      transition: background 0.2s;
+      position: relative;
+    }
+    .resize-handle:hover,
+    .resize-handle--dragging {
+      background: var(--resize-handle-hover);
+    }
+    .resize-handle::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -4px;
+      right: -4px;
+      bottom: 0;
+    }
+
+    /* Editor */
+    #editor {
+      flex: 1;
+      width: 100%;
+      border: none;
+      outline: none;
+      resize: none;
+      padding: 16px;
+      font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", "Cascadia Code", Consolas, "Noto Sans SC", monospace;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
+      background: var(--bg-editor);
+      tab-size: 2;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    #editor::placeholder {
+      color: var(--text-secondary);
+      opacity: 0.5;
+    }
+
+    /* Preview area */
+    .preview-container {
+      flex: 1;
+      position: relative;
+      background: var(--bg-preview);
+      transition: background 0.3s;
+    }
+
+    #mindmap {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .preview-container--empty::after {
+      content: '在左侧输入 Markdown 内容，思维导图将实时预览';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--text-secondary);
+      font-size: 14px;
+      pointer-events: none;
+      opacity: 0.6;
+      white-space: nowrap;
+    }
+
+    /* ===== Toast ===== */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 8px;
+    }
+
+    .toast {
+      padding: 10px 18px;
+      background: var(--toast-bg);
+      color: var(--toast-text);
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: var(--shadow-lg);
+      animation: toast-in 0.25s ease-out;
+      pointer-events: auto;
+    }
+
+    .toast--out {
+      animation: toast-out 0.25s ease-in forwards;
+    }
+
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes toast-out {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(12px); }
+    }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 768px) {
+      .main {
+        flex-direction: column;
+      }
+      .pane--editor {
+        flex: 1 1 40%;
+        min-height: 0;
+      }
+      .pane--preview {
+        flex: 1 1 60%;
+        min-height: 0;
+      }
+      .resize-handle {
+        width: 100%;
+        height: 4px;
+        cursor: row-resize;
+      }
+      .toolbar {
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 6px 10px;
+      }
+      .toolbar__brand { font-size: 14px; }
+      .btn { font-size: 12px; padding: 5px 10px; }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="toolbar__brand">🧠 <span>md-mindmap</span></div>
+  <div class="toolbar__separator"></div>
+
+  <button class="btn" id="btnSample" title="加载示例 Markdown">
+    📄 示例
+  </button>
+
+  <button class="btn" id="btnClear" title="清空编辑器">
+    🗑 清空
+  </button>
+
+  <div class="toolbar__separator"></div>
+
+  <div class="split-buttons">
+    <button class="btn" id="btnLayoutLeft" title="仅编辑器">◁</button>
+    <button class="btn" id="btnLayoutSplit" title="分屏布局">▯</button>
+  </div>
+
+  <div class="toolbar__spacer"></div>
+
+  <div class="dropdown" id="dropdownExport">
+    <button class="btn btn--primary" id="btnExport">
+      ⬇ 导出 <span style="font-size:10px;margin-left:2px">▾</span>
+    </button>
+    <div class="dropdown__menu" id="exportMenu">
+      <button class="dropdown__item" data-action="exportHtml">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+        导出 HTML
+      </button>
+      <button class="dropdown__item" data-action="exportJson">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"></path><polygon points="18 2 22 6 12 16 8 16 8 12 18 2"></polygon></svg>
+        导出 JSON
+      </button>
+      <button class="dropdown__item" data-action="exportSvg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line></svg>
+        导出 SVG
+      </button>
+    </div>
+  </div>
+
+  <button class="btn btn--icon" id="btnTheme" title="切换亮色/暗色主题">🌙</button>
+
+  <a class="btn btn--small" href="https://github.com/Sir-YuanShuai/md-mindmap" target="_blank" rel="noopener" title="GitHub 仓库">⭐</a>
+</div>
+
+<!-- Main content -->
+<div class="main" id="main">
+  <div class="pane pane--editor" id="paneEditor">
+    <div class="pane__header">
+      <span class="indicator"></span> MARKDOWN 编辑器
+    </div>
+    <textarea id="editor"
+      placeholder="# 在此输入 Markdown...
+##
+### 思维导图将在这里实时预览...
+##
+### 支持标准 Markdown 标题语法
+##
+## 试试这些功能:
+### 交互式操作 (缩放 / 拖拽 / 折叠)
+### 亮色 / 暗色主题切换
+### 导出 HTML / JSON / SVG
+##
+## 快捷键:
+### Tab — 缩进
+### Ctrl+Shift+F — 切换全屏预览"></textarea>
+  </div>
+
+  <div class="resize-handle" id="resizeHandle"></div>
+
+  <div class="pane pane--preview" id="panePreview">
+    <div class="pane__header">
+      <span class="indicator"></span> 思维导图预览
+    </div>
+    <div class="preview-container preview-container--empty" id="previewContainer">
+      <svg id="mindmap"></svg>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!--
+  Dependencies (CDN)
+
+  Loading order matters:
+  1. d3 — required by markmap-view for SVG layout
+  2. markmap-lib (IIFE) — expects (this.markmap, window.katex); sets Transformer etc.
+  3. markmap-view — expects (this.markmap, d3); sets Markmap etc.
+
+  Both IIFEs write to `window.markmap`, making all exports available under
+  the global `markmap` namespace: markmap.Transformer, markmap.Markmap, etc.
+-->
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.18.11/dist/browser/index.iife.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-view@0.18.11/dist/browser/index.js"></script>
+
+<script>
+;(function () {
+  'use strict';
+
+  // ===== DOM refs =====
+  var editor = document.getElementById('editor');
+  var mindmapSvg = document.getElementById('mindmap');
+  var previewContainer = document.getElementById('previewContainer');
+  var resizeHandle = document.getElementById('resizeHandle');
+  var paneEditor = document.getElementById('paneEditor');
+  var panePreview = document.getElementById('panePreview');
+  var mainContainer = document.getElementById('main');
+  var toastContainer = document.getElementById('toastContainer');
+  var exportMenu = document.getElementById('exportMenu');
+  var btnExport = document.getElementById('btnExport');
+
+  // ===== State =====
+  var currentMarkdown = editor.value;
+  var currentRoot = null;
+  var currentParsed = null;
+  var mmInstance = null;
+  var theme = localStorage.getItem('md-mindmap-theme') || 'light';
+  var layoutSelected = localStorage.getItem('md-mindmap-layout') || 'split';
+
+  // ===== Init markmap globals =====
+  var Transformer = markmap.Transformer;
+  var Markmap = markmap.Markmap;
+  var transformer = new Transformer();
+
+  // ===== Theme =====
+  function setTheme(t) {
+    theme = t;
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('md-mindmap-theme', t);
+    updateThemeButton();
+    // Re-render the current mindmap to pick up theme colors
+    if (mmInstance && currentRoot) {
+      mmInstance.setData(currentRoot);
+      mmInstance.fit();
+    }
+  }
+
+  function toggleTheme() {
+    setTheme(theme === 'light' ? 'dark' : 'light');
+  }
+
+  function updateThemeButton() {
+    var btn = document.getElementById('btnTheme');
+    btn.innerHTML = theme === 'light' ? '🌙' : '☀️';
+    btn.title = theme === 'light' ? '切换到暗色主题' : '切换到亮色主题';
+  }
+
+  // ===== Toast =====
+  function showToast(message, duration) {
+    duration = duration || 2500;
+    var el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = message;
+    toastContainer.appendChild(el);
+
+    var remove = function () {
+      el.classList.add('toast--out');
+      setTimeout(function () { el.remove(); }, 250);
+    };
+
+    setTimeout(remove, duration);
+    el.addEventListener('click', remove);
+  }
+
+  // ===== Parsing & Rendering =====
+  var renderTimeout = null;
+
+  function parseMarkdown(md) {
+    try {
+      var result = transformer.transform(md);
+      var root = result.root;
+      var features = result.features;
+      var frontmatter = result.frontmatter;
+      var assets = transformer.getUsedAssets(features);
+      return { root: root, features: features, frontmatter: frontmatter, assets: assets };
+    } catch (e) {
+      console.error('Markdown parse error:', e);
+      return null;
+    }
+  }
+
+  function renderMindmap(md) {
+    currentMarkdown = md;
+
+    var trimmed = md.trim();
+    if (!trimmed) {
+      clearMindmap();
+      return;
+    }
+
+    var parsed = parseMarkdown(md);
+    if (!parsed || !parsed.root) {
+      clearMindmap();
+      return;
+    }
+
+    currentRoot = parsed.root;
+    currentParsed = parsed;
+    previewContainer.classList.remove('preview-container--empty');
+
+    if (!mmInstance) {
+      // Create new markmap instance
+      mmInstance = Markmap.create(mindmapSvg, null, currentRoot);
+    } else {
+      // Update existing instance: setData + fit
+      mmInstance.setData(currentRoot);
+      mmInstance.fit();
+    }
+  }
+
+  function clearMindmap() {
+    currentRoot = null;
+    currentParsed = null;
+    previewContainer.classList.add('preview-container--empty');
+    if (mmInstance) {
+      mmInstance.setData(null);
+    }
+  }
+
+  function scheduleRender() {
+    clearTimeout(renderTimeout);
+    renderTimeout = setTimeout(function () {
+      renderMindmap(editor.value);
+    }, 150);
+  }
+
+  // ===== Export =====
+  function exportHtml() {
+    if (!currentParsed) {
+      showToast('⚠️ 没有可导出的内容，请先输入 Markdown');
+      return;
+    }
+
+    var root = currentParsed.root;
+    var features = currentParsed.features;
+    var assets = currentParsed.assets;
+    var title = (currentParsed.frontmatter && currentParsed.frontmatter.title) || 'Mind Map';
+    var darkMode = theme === 'dark';
+
+    var assetsStyles = (assets && assets.styles) || [];
+    var assetsScripts = (assets && assets.scripts) || [];
+
+    // Always include CDN scripts so the exported HTML works standalone
+    var cdnScripts = [
+      '<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"><\/script>',
+      '<script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.18.11/dist/browser/index.iife.js"><\/script>',
+      '<script src="https://cdn.jsdelivr.net/npm/markmap-view@0.18.11/dist/browser/index.js"><\/script>'
+    ];
+
+    var themeAttr = darkMode ? ' data-theme="dark"' : '';
+
+    var html = '<!DOCTYPE html>\n' +
+      '<html lang="zh-CN"' + themeAttr + '>\n' +
+      '<head>\n' +
+      '  <meta charset="UTF-8">\n' +
+      '  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+      '  <title>' + escapeHtml(title) + '</title>\n' +
+      '  <style>\n' +
+      '    * { margin: 0; padding: 0; box-sizing: border-box; }\n' +
+      '    body, html, #mindmap { width: 100%; height: 100%; }\n' +
+      '    [data-theme="dark"] { background: #1e1e2e; }\n' +
+      '    [data-theme="dark"] .markmap-foreign { color: #cdd6f4; }\n' +
+      '  </style>\n' +
+      assetsStyles.join('\n') + '\n' +
+      '</head>\n' +
+      '<body>\n' +
+      '  <svg id="mindmap"></svg>\n' +
+      cdnScripts.join('\n') + '\n' +
+      assetsScripts.join('\n') + '\n' +
+      '  <script>\n' +
+      '    (function () {\n' +
+      '      var root = ' + JSON.stringify(root) + ';\n' +
+      '      var svg = document.getElementById("mindmap");\n' +
+      '      window.markmap.Markmap.create(svg, null, root);\n' +
+      '    })();\n' +
+      '  <\/script>\n' +
+      '</body>\n' +
+      '</html>';
+
+    downloadFile('mindmap.html', html, 'text/html');
+    showToast('✅ HTML 文件已下载');
+    closeDropdown();
+  }
+
+  function exportJson() {
+    if (!currentRoot) {
+      showToast('⚠️ 没有可导出的内容，请先输入 Markdown');
+      return;
+    }
+    var json = JSON.stringify(currentRoot, null, 2);
+    downloadFile('mindmap.json', json, 'application/json');
+    showToast('✅ JSON 节点树已下载');
+    closeDropdown();
+  }
+
+  function exportSvg() {
+    var svgEl = mindmapSvg;
+    // Check that there's actual rendered content
+    if (!svgEl || !svgEl.querySelector('g')) {
+      showToast('⚠️ 没有可导出的 SVG，请先输入 Markdown');
+      return;
+    }
+
+    // Clone to avoid mutating the displayed SVG
+    var clone = svgEl.cloneNode(true);
+
+    // Collect all page styles
+    var styles = document.querySelectorAll('style');
+    var cssText = '';
+    for (var i = 0; i < styles.length; i++) {
+      cssText += styles[i].textContent + '\n';
+    }
+    // Add dark mode foreign node color
+    if (theme === 'dark') {
+      cssText += '.markmap-foreign { color: #cdd6f4; }\n';
+    }
+    // Ensure basic SVG styling from markmap
+    cssText += 'svg { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }\n';
+
+    // Inject styles into the cloned SVG for standalone display
+    var styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+    styleEl.textContent = cssText;
+    clone.insertBefore(styleEl, clone.firstChild);
+
+    // Set a background rect for dark mode
+    if (theme === 'dark') {
+      var bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      bg.setAttribute('width', '100%');
+      bg.setAttribute('height', '100%');
+      bg.setAttribute('fill', '#1e1e2e');
+      clone.insertBefore(bg, clone.firstChild);
+    }
+
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+    var svgString = new XMLSerializer().serializeToString(clone);
+    downloadFile('mindmap.svg', svgString, 'image/svg+xml');
+    showToast('✅ SVG 文件已下载');
+    closeDropdown();
+  }
+
+  function downloadFile(filename, content, mimeType) {
+    var blob = new Blob([content], { type: mimeType + ';charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // ===== Dropdown =====
+  function toggleDropdown() {
+    exportMenu.classList.toggle('dropdown__menu--open');
+  }
+
+  function closeDropdown() {
+    exportMenu.classList.remove('dropdown__menu--open');
+  }
+
+  // ===== Layout =====
+  var LAYOUT_SPLIT = 'split';
+  var LAYOUT_EDITOR = 'editor';
+
+  function setLayout(mode) {
+    layoutSelected = mode;
+    localStorage.setItem('md-mindmap-layout', mode);
+
+    if (mode === 'editor') {
+      paneEditor.style.flex = '1';
+      panePreview.style.display = 'none';
+      resizeHandle.style.display = 'none';
+    } else {
+      paneEditor.style.flex = '1';
+      panePreview.style.flex = '1';
+      paneEditor.style.display = '';
+      panePreview.style.display = '';
+      resizeHandle.style.display = '';
+    }
+  }
+
+  function toggleLayout() {
+    setLayout(layoutSelected === LAYOUT_SPLIT ? LAYOUT_EDITOR : LAYOUT_SPLIT);
+  }
+
+  // ===== Resize (drag handle) =====
+  var isDragging = false;
+
+  function isHorizontalResize() {
+    return window.innerWidth > 768;
+  }
+
+  resizeHandle.addEventListener('mousedown', function (e) {
+    isDragging = true;
+    resizeHandle.classList.add('resize-handle--dragging');
+    document.body.style.cursor = isHorizontalResize() ? 'col-resize' : 'row-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  resizeHandle.addEventListener('touchstart', function (e) {
+    isDragging = true;
+    resizeHandle.classList.add('resize-handle--dragging');
+    document.body.style.cursor = isHorizontalResize() ? 'col-resize' : 'row-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('mousemove', function (e) {
+    if (!isDragging) return;
+    var horizontal = isHorizontalResize();
+    var containerRect = mainContainer.getBoundingClientRect();
+    var ratio;
+
+    if (horizontal) {
+      ratio = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+    } else {
+      ratio = ((e.clientY - containerRect.top) / containerRect.height) * 100;
+    }
+
+    ratio = Math.max(20, Math.min(80, ratio));
+
+    if (horizontal) {
+      paneEditor.style.flex = '0 0 ' + ratio + '%';
+      panePreview.style.flex = '1';
+    } else {
+      paneEditor.style.flex = '0 0 ' + ratio + '%';
+      panePreview.style.flex = '1';
+    }
+  });
+
+  document.addEventListener('touchmove', function (e) {
+    if (!isDragging) return;
+    var horizontal = isHorizontalResize();
+    var containerRect = mainContainer.getBoundingClientRect();
+    var touch = e.touches[0];
+    var ratio;
+
+    if (horizontal) {
+      ratio = ((touch.clientX - containerRect.left) / containerRect.width) * 100;
+    } else {
+      ratio = ((touch.clientY - containerRect.top) / containerRect.height) * 100;
+    }
+
+    ratio = Math.max(20, Math.min(80, ratio));
+
+    if (horizontal) {
+      paneEditor.style.flex = '0 0 ' + ratio + '%';
+      panePreview.style.flex = '1';
+    } else {
+      paneEditor.style.flex = '0 0 ' + ratio + '%';
+      panePreview.style.flex = '1';
+    }
+  }, { passive: true });
+
+  document.addEventListener('mouseup', stopDragging);
+  document.addEventListener('touchend', stopDragging);
+
+  function stopDragging() {
+    if (!isDragging) return;
+    isDragging = false;
+    resizeHandle.classList.remove('resize-handle--dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }
+
+  // ===== Sample content =====
+  var SAMPLE_MD = '# 我的思维导图\n' +
+    '## 前端开发\n' +
+    '### React\n' +
+    '#### Hooks\n' +
+    '#### 组件化\n' +
+    '#### 状态管理\n' +
+    '### Vue\n' +
+    '#### 组合式 API\n' +
+    '#### 单文件组件\n' +
+    '### CSS\n' +
+    '#### Tailwind CSS\n' +
+    '#### CSS Modules\n' +
+    '### 构建工具\n' +
+    '#### Vite\n' +
+    '#### Webpack\n' +
+    '## 后端开发\n' +
+    '### Node.js\n' +
+    '#### Express\n' +
+    '#### Fastify\n' +
+    '### Python\n' +
+    '#### Django\n' +
+    '#### FastAPI\n' +
+    '### 数据库\n' +
+    '#### PostgreSQL\n' +
+    '#### MongoDB\n' +
+    '#### Redis\n' +
+    '## DevOps\n' +
+    '### CI/CD\n' +
+    '#### GitHub Actions\n' +
+    '#### Docker\n' +
+    '### 云服务\n' +
+    '#### AWS\n' +
+    '#### Vercel\n' +
+    '## 学习资源\n' +
+    '### 官方文档\n' +
+    '### 技术博客\n' +
+    '### 开源项目\n' +
+    '### 在线课程';
+
+  // ===== Event bindings =====
+  editor.addEventListener('input', scheduleRender);
+  document.getElementById('btnTheme').addEventListener('click', toggleTheme);
+
+  // Export dropdown
+  btnExport.addEventListener('click', function (e) {
+    e.stopPropagation();
+    toggleDropdown();
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!exportMenu.contains(e.target) && e.target !== btnExport && !btnExport.contains(e.target)) {
+      closeDropdown();
+    }
+  });
+
+  exportMenu.addEventListener('click', function (e) {
+    var item = e.target.closest('.dropdown__item');
+    if (!item) return;
+    var action = item.dataset.action;
+    if (action === 'exportHtml') exportHtml();
+    else if (action === 'exportJson') exportJson();
+    else if (action === 'exportSvg') exportSvg();
+  });
+
+  // Sample / Clear
+  document.getElementById('btnSample').addEventListener('click', function () {
+    editor.value = SAMPLE_MD;
+    renderMindmap(SAMPLE_MD);
+    showToast('📄 已加载示例 Markdown');
+  });
+
+  document.getElementById('btnClear').addEventListener('click', function () {
+    editor.value = '';
+    clearMindmap();
+    editor.focus();
+    showToast('🗑 编辑器已清空');
+  });
+
+  // Layout buttons
+  document.getElementById('btnLayoutLeft').addEventListener('click', function () { setLayout('editor'); });
+  document.getElementById('btnLayoutSplit').addEventListener('click', function () { setLayout('split'); });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function (e) {
+    // Cmd/Ctrl+Shift+F: toggle full preview
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'F') {
+      e.preventDefault();
+      toggleLayout();
+    }
+  });
+
+  // Tab key support in editor (indent/dedent)
+  editor.addEventListener('keydown', function (e) {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      var start = editor.selectionStart;
+      var end = editor.selectionEnd;
+      var value = editor.value;
+
+      if (e.shiftKey) {
+        // Shift+Tab: remove indentation
+        var lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        var lineText = value.substring(lineStart, start);
+        var indentMatch = lineText.match(/^(\t| {1,2})/);
+        if (indentMatch) {
+          editor.value = value.substring(0, lineStart) + value.substring(lineStart + indentMatch[0].length);
+          editor.selectionStart = editor.selectionEnd = start - indentMatch[0].length;
+        }
+      } else {
+        // Tab: insert 2 spaces
+        var indent = '  ';
+        editor.value = value.substring(0, start) + indent + value.substring(end);
+        editor.selectionStart = editor.selectionEnd = start + indent.length;
+      }
+      scheduleRender();
+    }
+  });
+
+  // ===== Window resize → re-fit =====
+  var resizeDebounce = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeDebounce);
+    resizeDebounce = setTimeout(function () {
+      if (mmInstance && currentRoot) {
+        mmInstance.fit();
+      }
+    }, 200);
+  });
+
+  // ===== Startup =====
+  function init() {
+    setTheme(theme);
+    setLayout(layoutSelected);
+
+    // Initial render from placeholder
+    if (editor.value.trim()) {
+      renderMindmap(editor.value);
+    }
+  }
+
+  init();
+})();
+</script>
+
+</body>
+</html>
