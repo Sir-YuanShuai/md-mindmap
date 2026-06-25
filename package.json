@@ -35,7 +35,10 @@
   "dependencies": {
     "commander": "^12.1.0",
     "markmap-lib": "^0.18.11",
-    "markmap-view": "^0.18.11",
+    "markmap-view": "^0.18.12",
     "open": "^10.1.0"
+  },
+  "optionalDependencies": {
+    "puppeteer": "^25.2.1"
   }
 }
