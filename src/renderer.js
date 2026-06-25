@@ -3,6 +3,14 @@
  */
 
 /**
+ * CDN 资源地址 — 当 getUsedAssets() 返回空时确保 markmap-view 始终可用
+ */
+const MARKMAP_CDN_SCRIPTS = [
+  '<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>',
+  '<script src="https://cdn.jsdelivr.net/npm/markmap-view@0.18.11/dist/browser/index.js"></script>',
+];
+
+/**
  * 构建包含思维导图的完整 HTML 页面
  * @param {object} root - markmap 的节点树根节点
  * @param {object} features - markmap 的 feature flags
@@ -17,6 +25,9 @@ function buildHtml(root, features, assets, options = {}) {
   const darkMode = options.darkMode || false;
 
   const { styles, scripts } = assets || { styles: [], scripts: [] };
+
+  // CDN 兜底：getUsedAssets() 对纯标题 Markdown 返回空数组，导致 HTML 缺少 markmap-view
+  const allScripts = scripts.length > 0 ? scripts : MARKMAP_CDN_SCRIPTS;
 
   const themeAttr = darkMode ? ' data-theme="dark"' : '';
 
@@ -50,7 +61,7 @@ function buildHtml(root, features, assets, options = {}) {
 </head>
 <body>
   <svg id="mindmap"></svg>
-  ${scripts.join('\n')}
+  ${allScripts.join('\n')}
   <script>
     (() => {
       const { Markmap } = window.markmap;
