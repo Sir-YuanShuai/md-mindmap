@@ -2,13 +2,51 @@
  * 将 markmap 的节点数据渲染为独立可用的 HTML 页面
  */
 
+const fs = require('fs');
+const path = require('path');
+
 /**
- * CDN 资源地址 — 当 getUsedAssets() 返回空时确保 markmap-view 始终可用
+ * 定位 npm 包的根目录
+ * @param {string} pkgName - 包名
+ * @returns {string} 包根目录的绝对路径
  */
-const MARKMAP_CDN_SCRIPTS = [
-  '<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>',
-  '<script src="https://cdn.jsdelivr.net/npm/markmap-view@0.18.11/dist/browser/index.js"></script>',
-];
+function getPkgRoot(pkgName) {
+  let dir = path.dirname(require.resolve(pkgName));
+  // 向上查找包含 package.json 的目录，即包根目录
+  while (true) {
+    const parent = path.dirname(dir);
+    if (parent === dir) break; // 到达文件系统根目录
+    if (fs.existsSync(path.join(dir, 'package.json'))) {
+      return dir;
+    }
+    dir = parent;
+  }
+  throw new Error(`无法定位 ${pkgName} 的包根目录`);
+}
+
+/**
+ * 读取 node_modules 中的脚本文件内容，生成内联 <script> 标签
+ * @param {string} pkgName - 包名
+ * @param {string} relativePath - 相对于包根目录的文件路径
+ */
+function inlineScript(pkgName, relativePath) {
+  const pkgRoot = getPkgRoot(pkgName);
+  const absPath = path.join(pkgRoot, relativePath);
+  const content = fs.readFileSync(absPath, 'utf-8');
+  return `<script>${content}</script>`;
+}
+
+// 缓存内联脚本，避免每次都读磁盘
+let _cachedScripts = null;
+function getCoreScripts() {
+  if (!_cachedScripts) {
+    _cachedScripts = [
+      inlineScript('d3', 'dist/d3.min.js'),
+      inlineScript('markmap-view', 'dist/browser/index.js'),
+    ].join('\n');
+  }
+  return _cachedScripts;
+}
 
 /**
  * 构建包含思维导图的完整 HTML 页面
@@ -26,10 +64,8 @@ function buildHtml(root, features, assets, options = {}) {
 
   const { styles, scripts } = assets || { styles: [], scripts: [] };
 
-  // CDN 兜底：getUsedAssets() 对纯标题 Markdown 返回空数组，导致 HTML 缺少 markmap-view
-  const allScripts = scripts.length > 0 ? scripts : MARKMAP_CDN_SCRIPTS;
-
   const themeAttr = darkMode ? ' data-theme="dark"' : '';
+  const coreScripts = getCoreScripts();
 
   return `<!DOCTYPE html>
 <html lang="zh-CN"${themeAttr}>
@@ -61,7 +97,8 @@ function buildHtml(root, features, assets, options = {}) {
 </head>
 <body>
   <svg id="mindmap"></svg>
-  ${allScripts.join('\n')}
+  ${coreScripts}
+  ${scripts.join('\n')}
   <script>
     (() => {
       const { Markmap } = window.markmap;
