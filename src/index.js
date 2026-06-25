@@ -38,4 +38,6 @@ function render(markdown, options = {}) {
   return buildHtml(root, features, assets, { ...options, title });
 }
 
-module.exports = { parse, render, transformer };
+const { exportPng } = require('./png-exporter');
+
+module.exports = { parse, render, exportPng, transformer };
