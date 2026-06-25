@@ -6,7 +6,6 @@
  * 用法:
  *   md-mindmap <markdown-file>             输出 HTML 到 stdout
  *   md-mindmap <markdown-file> -o out.html  输出 HTML 到文件
- *   md-mindmap <markdown-file> -w           监听文件变化，自动刷新
  */
 
 const { Command } = require('commander');
