@@ -8,6 +8,7 @@
 
 const { Transformer } = require('markmap-lib');
 const { buildHtml } = require('./renderer');
+const { exportPng } = require('./png-exporter');
 
 const transformer = new Transformer();
 
@@ -38,4 +39,4 @@ function render(markdown, options = {}) {
   return buildHtml(root, features, assets, { ...options, title });
 }
 
-module.exports = { parse, render, transformer };
+module.exports = { parse, render, exportPng, transformer };
