@@ -61,9 +61,16 @@ const EXPORT_TOOLBAR = `
   }
   function mdmExportPNG() {
     const svg = document.getElementById('mindmap');
-    const rect = svg.getBoundingClientRect();
-    const w = Math.round(rect.width) || 1920;
-    const h = Math.round(rect.height) || 1080;
+    const g = svg.querySelector('g');
+    if (!g) { console.error('PNG 导出失败：找不到思维导图内容'); return; }
+
+    // 使用 getBBox() 获取内容实际尺寸（自适应比例）
+    const bbox = g.getBBox();
+    const pad = 40;
+    const bx = Math.floor(bbox.x) - pad;
+    const by = Math.floor(bbox.y) - pad;
+    const w = Math.ceil(bbox.width) + pad * 2;
+    const h = Math.ceil(bbox.height) + pad * 2;
 
     // 获取当前主题颜色
     const bodyStyle = getComputedStyle(document.body);
@@ -79,8 +86,8 @@ const EXPORT_TOOLBAR = `
       const text = div.textContent.trim();
       if (!text) { fo.remove(); return; }
 
-      const x = parseFloat(fo.getAttribute('x')) || 0;
-      const y = parseFloat(fo.getAttribute('y')) || 0;
+      const fx = parseFloat(fo.getAttribute('x')) || 0;
+      const fy = parseFloat(fo.getAttribute('y')) || 0;
       const fw = parseFloat(fo.getAttribute('width')) || 200;
       const fh = parseFloat(fo.getAttribute('height')) || 40;
 
@@ -93,8 +100,8 @@ const EXPORT_TOOLBAR = `
       }
 
       const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      textEl.setAttribute('x', String(x + fw / 2));
-      textEl.setAttribute('y', String(y + fh / 2 + 1));
+      textEl.setAttribute('x', String(fx + fw / 2));
+      textEl.setAttribute('y', String(fy + fh / 2 + 1));
       textEl.setAttribute('text-anchor', 'middle');
       textEl.setAttribute('dominant-baseline', 'middle');
       textEl.setAttribute('font-size', fontSize);
@@ -105,14 +112,12 @@ const EXPORT_TOOLBAR = `
       fo.parentNode.replaceChild(textEl, fo);
     });
 
-    // 保留当前视图的 transform
-    const g = clone.querySelector('g');
-    const origG = svg.querySelector('g');
-    if (g && origG) {
-      g.setAttribute('transform', origG.getAttribute('transform') || '');
-    }
+    // 移除 transform 以还原到原始坐标系（getBBox 反映的是变换后的坐标）
+    const cg = clone.querySelector('g');
+    if (cg) cg.removeAttribute('transform');
 
     clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('viewBox', [bx, by, w, h].join(' '));
     clone.setAttribute('width', String(w));
     clone.setAttribute('height', String(h));
 
@@ -141,6 +146,7 @@ const EXPORT_TOOLBAR = `
     };
     img.src = url;
   }
+
   function mdmDownload(blob, filename) {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);

@@ -43,6 +43,12 @@ md-mindmap notes.md -o mindmap.html -t "我的笔记"
 
 # 直接输出 HTML 到标准输出
 md-mindmap notes.md > mindmap.html
+
+# 导出 PNG 图片（需要 puppeteer）
+md-mindmap notes.md --format png -o mindmap.png --quality high
+
+# 导出 JSON 节点树
+md-mindmap notes.md --format json -o nodes.json
 ```
 
 ### CLI 参数
@@ -50,16 +56,22 @@ md-mindmap notes.md > mindmap.html
 | 参数 | 说明 |
 |------|------|
 | `<file>` | Markdown 文件路径（必填） |
-| `-o, --output <file>` | 输出 HTML 文件路径 |
+| `-o, --output <file>` | 输出文件路径 |
 | `-t, --title <title>` | 自定义页面标题（默认使用文件名） |
 | `-d, --dark` | 使用暗色主题 |
+| `-f, --format <format>` | 输出格式：html（默认）、json、png |
+| `-q, --quality <level>` | PNG 质量等级：low / medium / high（默认 high） |
+| `--depth <n>` | 初始展开层级（默认全部展开） |
+| `--no-fit` | 禁用自动缩放适配 |
 | `-V, --version` | 显示版本号 |
 | `-h, --help` | 显示帮助信息 |
+
+> ⚠️ `--width` / `--height` 已弃用，请使用 `--quality` 替代。PNG 画面比例根据文档内容自动计算，不再固定 16:9。
 
 ## API 使用
 
 ```js
-const { parse, render } = require('md-mindmap');
+const { parse, render, exportPng } = require('md-mindmap');
 
 // 渲染为完整 HTML
 const html = render('# 根节点\n## 子节点 A\n## 子节点 B', {
@@ -69,7 +81,30 @@ const html = render('# 根节点\n## 子节点 A\n## 子节点 B', {
 
 // 只解析，获取节点树
 const { root, features, frontmatter } = parse('# Markdown 内容');
+
+// 导出 PNG（需要 puppeteer）
+const html2 = render(markdown, { noExport: true });
+await exportPng(html2, {
+  quality: 'high',   // 'low' | 'medium' | 'high'（默认 high）
+  darkMode: false,
+  output: './mindmap.png',
+});
 ```
+
+### exportPng API
+
+`exportPng(html, options)` 将 HTML 渲染为 PNG 截图并保存到文件。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `html` | `string` | 由 `render()` 生成的 HTML 字符串 |
+| `options.quality` | `string` | 质量等级：`low`（1x）、`medium`（2x）、`high`（3x，默认） |
+| `options.darkMode` | `boolean` | 是否暗色背景（默认 false） |
+| `options.output` | `string` | 输出 PNG 文件路径（必填） |
+
+返回值：`Promise<{ width: number, height: number, scale: number }>`
+
+> PNG 画面比例根据文档内容自动计算（通过 `g.getBBox()` 获取 SVG 实际尺寸），不再写死固定分辨率。
 
 ## Markdown 语法
 
