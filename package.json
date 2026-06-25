@@ -36,6 +36,7 @@
     "commander": "^12.1.0",
     "markmap-lib": "^0.18.11",
     "markmap-view": "^0.18.11",
-    "open": "^10.1.0"
+    "open": "^10.1.0",
+    "puppeteer": "^23.11.1"
   }
 }
